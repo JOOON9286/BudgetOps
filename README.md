@@ -4,6 +4,8 @@
 
 모임별로 예산과 지출 내역을 관리할 수 있으며, 회칙과 승인 정책을 기준으로 지출을 검토하고 대시보드와 리포트를 통해 모임의 예산 사용 현황을 확인할 수 있습니다.
 
+> 이 저장소는 [BudgetOps-Agent/unName](https://github.com/BudgetOps-Agent/unName)을 포크한 팀 프로젝트(3인)를 개인 포트폴리오 목적으로 가져온 것입니다. 본인은 백엔드 개발과 AWS 배포를 담당했습니다. AI 지출 심사를 처리하는 LLM 서버는 별도 팀이 별도 저장소에서 개발했습니다.
+
 ## 주요 기능
 
 ### 회원 관리
@@ -172,6 +174,40 @@ AI가 자동으로 처리하기 어려운 지출은 관리자 검토 대상으�
         │      Redis      │
         │ Cache / Session │
         └─────────────────┘
+```
+
+## 전체 흐름도
+
+지출 등록부터 AI 심사, 승인까지 이어지는 핵심 플로우입니다.
+
+```mermaid
+sequenceDiagram
+    actor 사용자
+    participant FE as Frontend
+    participant BE as Backend
+    participant LLM as LLM Server (별도 팀)
+    participant DB as Database
+
+    사용자->>FE: 지출 등록 (증빙 파일 포함)
+    FE->>BE: 지출 등록 요청
+    BE->>DB: 지출 저장 (상태: 심사중)
+    BE->>LLM: AI 심사 요청 (202 접수)
+    BE-->>FE: 등록 완료 응답
+
+    Note over LLM: 증빙 · 예산 · 이상탐지 · 회칙 기준으로 비동기 심사
+
+    LLM->>BE: 심사 결과 콜백
+    BE->>DB: 지출 상태/카테고리 업데이트
+
+    alt 자동 처리 가능
+        BE->>DB: AI 자동 승인
+    else 관리자 검토 필요
+        BE->>DB: 상태 = 검토 대기
+    end
+
+    사용자->>FE: 지출 상세에서 AI 심사 결과 확인
+    FE->>BE: 지출 상세 조회
+    BE-->>FE: 판정 결과 및 근거 반환
 ```
 
 ## 주요 화면
