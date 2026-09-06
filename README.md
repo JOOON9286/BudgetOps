@@ -546,6 +546,16 @@ docker compose up -d --build
 
 `main` 브랜치에 push되면 GitHub Actions(`.github/workflows/deploy-aws.yml`)가 EC2에 SSH로 접속해 자동으로 재배포합니다. `dev`는 기능 통합 브랜치로, 배포에 영향을 주지 않습니다.
 
+### 5. 테스트
+
+```bash
+cd backend
+./gradlew test          # 슬라이스·통합 테스트
+./gradlew clean build   # 빌드 + 전체 테스트
+```
+
+테스트는 인메모리 H2로 동작하도록 별도 프로파일(`src/test/resources/application-test.properties`)을 두어 로컬 MySQL/Redis 없이 실행됩니다. 대표 테스트로 지출 승인/반려의 낙관적 락 동시성 검증(`ExpenseConcurrencyTest`)이 포함되어 있습니다.
+
 ## 상태 관리
 
 서버 상태와 클라이언트 상태를 분리하여 관리합니다.
@@ -607,6 +617,10 @@ AI 기능은 별도의 LLM 서버와 API를 통해 연동됩니다.
 ### 데이터 정합성 문제
 
 백엔드와 LLM 서버에서 사용하는 카테고리와 상태값이 서로 다르게 정의되지 않도록 API와 DB의 데이터 구조를 함께 확인했습니다.
+
+### 지출 동시 처리 정합성 검증
+
+여러 관리자가 같은 지출을 동시에 승인·반려할 때 두 처리가 모두 반영되는 상황을 막기 위해 `Expense` 엔티티에 `@Version` 기반 낙관적 락을 두었고, 이것이 실제로 동작하는지 검증하는 테스트(`ExpenseConcurrencyTest`)를 추가했습니다. 두 스레드가 각자의 트랜잭션에서 같은 지출을 동시에 처리하면 한쪽만 커밋에 성공하고 다른 쪽은 `ObjectOptimisticLockingFailureException`으로 실패하는 것을 확인합니다. 테스트 스위트는 인메모리 H2로 구성하여 로컬 인프라 없이 `./gradlew build`가 통과하도록 정리했습니다.
 
 ### 배포 환경 통합 테스트
 
