@@ -74,6 +74,9 @@ dependencies {
 
     // AWS S3 (영수증/회칙 파일 저장 — 배포 컨테이너는 재빌드마다 로컬 디스크가 날아가서 S3로 옮김)
     implementation 'software.amazon.awssdk:s3:2.29.52'
+
+    // JPA 테스트용 인메모리 DB
+    testRuntimeOnly 'com.h2database:h2'
 }
 // 이거 있으면 @PathVariable("id") Long id 같은거 안써도 돼서 편함 있어도 작동함
 tasks.withType(JavaCompile) {
